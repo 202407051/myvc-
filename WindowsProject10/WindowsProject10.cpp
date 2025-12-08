@@ -12,6 +12,12 @@ using namespace std;
 
 void SpawnNewBall();    /// 미리 함수 프로토타입 선언
 
+/// 박스 영역
+int boxLeft = 50;
+int boxTop = 50;
+int boxRight = 350;
+int boxBottom = 550;
+
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
@@ -106,8 +112,29 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    // 원하는 클라이언트 영역 크기
+    RECT rc = { 0, 0, boxRight + 50, boxBottom + 50}; // +여유
+    DWORD style = WS_OVERLAPPEDWINDOW;
+
+    // 이 스타일에 맞도록 전체 창 크기 계산
+    AdjustWindowRectEx(&rc, style, TRUE, 0);
+
+    // 계산된 값 → 창 크기
+    int winW = rc.right - rc.left;
+    int winH = rc.bottom - rc.top;
+
+    // 계산된 크기로 생성
+    HWND hWnd = CreateWindowW(
+        szWindowClass,
+        szTitle,
+        style,
+        CW_USEDEFAULT,
+        0,
+        winW,       // 계산된 너비
+        winH,       // 계산된 높이
+        nullptr, nullptr, hInstance, nullptr
+    );
+
 
     if (!hWnd)
     {
@@ -132,11 +159,18 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 /// ===== 전역 게임 변수 =====
 
-/// 박스 영역
-int boxLeft = 50;
-int boxTop = 50;
-int boxRight = 350;
-int boxBottom = 550;
+
+bool showLine = false;         // 기준선 보이기 여부
+bool isGameOver = false;       // 게임 오버 상태
+
+// 기준선 위치 (화면 고정 70%)
+int lineY;                     // WM_SIZE나 InitInstance에서 계산
+
+int score = 0; /// 점수 변수
+int GetScoreFor(int type)   /// 점수 계산 함수
+{
+    return type * (type + 1) / 2;
+}
 
 float gravity = 1.5f; /// 중력
 
@@ -184,109 +218,115 @@ HBITMAP hBitmap;    /// 에 붙는 비트맵
 RECT rt;            /// 창 클라이언트 영역 크기
 
 
-// ==============================
-//  새 공 생성 함수
-// ==============================
+
 void SpawnNewBall()     /// 새 공 생성
 {
     int sizes[3] = { 10, 15, 20 };      /// 10. 15, 20 중 랜덤
-    int idx = rand() % 3;
-    int r = sizes[idx];
-
-    currentBall.type = idx + 1; // 1, 2, 3번 공
-    currentBall.radius = r;
-    currentBall.x = (boxLeft + boxRight) / 2;
-    currentBall.y = boxTop + r + 10;
+    int idx = rand() % 3; /// 0, 1, 2
+    int r = sizes[idx]; /// r= 10, 15, 20 중 하나
+    
+    currentBall.type = idx + 1; /// 1, 2, 3번 공
+    currentBall.radius = r; /// 반지름
+    currentBall.x = (boxLeft + boxRight) / 2;   /// x위치: 박스 중앙
+    currentBall.y = boxTop + r + 10;            /// y위치: 위쪽에서 살짝 내려
     currentBall.vx = 0;
     currentBall.vy = 0;
-    currentBall.isDropping = false;
+    currentBall.isDropping = false;             /// drop되지 않음
 
-    if (currentBall.type == 1) currentBall.color = RGB(150, 0, 200);
+    if (currentBall.type == 1) currentBall.color = RGB(150, 0, 200);    /// 색깔 지정
     if (currentBall.type == 2) currentBall.color = RGB(255, 0, 0);
     if (currentBall.type == 3) currentBall.color = RGB(255, 140, 0);
 }
 
 
 
-// ==============================
-//  Update
-// ==============================
+/// *** 물리 연산, 충돌, 합체, 현재 공 처리 *** ///
 void Update()
 {
-    // 1) 이미 떨어져서 쌓인 공들 처리
+    if (isGameOver)
+        return;
+
+    // 1) '이미 떨어져서 쌓인 공들' 처리
     for (auto& b : balls)
     {
-        if (b.isDropping)
+        if (b.isDropping)   /// 떨어졌을 경우
         {
-            b.vy += gravity;
-            b.y += b.vy;
+            b.vy += gravity;    /// 매 프레임 중력 적용
+            b.y += b.vy;    /// 속도만큼 위치(y) 이동
 
-            float bottom = boxBottom - b.radius;
+            float bottom = boxBottom - b.radius;    /// 박스 바닥에 딱 닿는 위치
             if (b.y > bottom)
             {
-                b.y = bottom;
-                b.vy *= -0.5f;
-                if (fabs(b.vy) < 0.5f) b.vy = 0;
+                b.y = bottom;   /// y를 바닥으로 고정
+                b.vy *= -0.2f;  /// 작게 통통 튀기
+                if (fabs(b.vy) < 0.5f) b.vy = 0;    /// 속도 <0.5f 면 0으로 만들어 멈춤
             }
         }
 
-        // ===== 좌우 벽 충돌 처리 추가 =====
-        if (b.x - b.radius < boxLeft)
-            b.x = boxLeft + b.radius;
-
-        if (b.x + b.radius > boxRight)
-            b.x = boxRight - b.radius;
-
-        // (필요하다면) 박스 위쪽도 막음
-        if (b.y - b.radius < boxTop)
-            b.y = boxTop + b.radius;
+        for (int iter = 0; iter < 10; iter++)
+        {
+            for (auto& b : balls)
+            {
+                if (b.x - b.radius < boxLeft)
+                    b.x = boxLeft + b.radius;
+                if (b.x + b.radius > boxRight)
+                    b.x = boxRight - b.radius;
+                if (b.y + b.radius > boxBottom)
+                    b.y = boxBottom - b.radius;
+                if (b.y - b.radius < boxTop)
+                    b.y = boxTop + b.radius;
+            }
+        }
     }
 
-    // 2) 공들끼리 충돌 처리 (강한 안정화 버전)
-    for (int i = 0; i < balls.size(); i++)
+    // 2) 공들끼리 충돌 처리
+    for (int iter = 0; iter < 10; iter++)   // ⭐⭐ 반복 안정화
     {
-        for (int j = i + 1; j < balls.size(); j++)
+        for (int i = 0; i < balls.size(); i++)
         {
-            Ball& A = balls[i];
-            Ball& B = balls[j];
-
-            float dx = B.x - A.x;
-            float dy = B.y - A.y;
-            float dist = sqrt(dx * dx + dy * dy);
-            float minDist = A.radius + B.radius;
-
-            if (dist < minDist)
+            for (int j = i + 1; j < balls.size(); j++)
             {
-                if (dist < 0.0001f) dist = 0.0001f; // 보호
+                Ball& A = balls[i];
+                Ball& B = balls[j];
 
-                float overlap = minDist - dist;
+                float dx = B.x - A.x;
+                float dy = B.y - A.y;
+                float dist = sqrt(dx * dx + dy * dy);
+                float minDist = A.radius + B.radius;    /// 반지름 합
 
-                // 충돌 방향 단위 벡터
-                float nx = dx / dist;
-                float ny = dy / dist;
+                if (dist < minDist)
+                {
+                    if (dist < 0.0001f) dist = 0.0001f; // 보호
 
-                // ===== 겹침을 100% 제거 =====
-                float push = overlap * 1.0f;
+                    float overlap = minDist - dist;
 
-                // 너무 많이 흔들리지 않게 밑에 있는 공은 덜 움직이게 (노란색 ★ 중요)
-                float A_weight = 0.3f;
-                float B_weight = 0.7f;
+                    // 충돌 방향 단위 벡터
+                    float nx = dx / dist;
+                    float ny = dy / dist;
 
-                A.x -= nx * push * A_weight;
-                A.y -= ny * push * A_weight;
+                    // ===== 겹침을 100% 제거 =====
+                    float push = overlap * 1.0f;
 
-                B.x += nx * push * B_weight;
-                B.y += ny * push * B_weight;
+                    // 너무 많이 흔들리지 않게 밑에 있는 공은 덜 움직이게 (노란색 ★ 중요)
+                    float A_weight = 0.3f;
+                    float B_weight = 0.7f;
 
-                // ===== 속도 감쇠 — 딱딱하고 안정적인 느낌 =====
-                A.vx *= 0.1f;
-                A.vy *= 0.1f;
-                B.vx *= 0.1f;
-                B.vy *= 0.1f;
+                    A.x -= nx * push * A_weight;
+                    A.y -= ny * push * A_weight;
 
-                // ===== 거의 멈추면 고정 =====
-                if (fabs(A.vy) < 0.1f) A.vy = 0;
-                if (fabs(B.vy) < 0.1f) B.vy = 0;
+                    B.x += nx * push * B_weight;
+                    B.y += ny * push * B_weight;
+
+                    // ===== 속도 감쇠 — 딱딱하고 안정적인 느낌 =====
+                    A.vx *= 0.1f;
+                    A.vy *= 0.1f;
+                    B.vx *= 0.1f;
+                    B.vy *= 0.1f;
+
+                    // ===== 거의 멈추면 고정 =====
+                    if (fabs(A.vy) < 0.1f) A.vy = 0;
+                    if (fabs(B.vy) < 0.1f) B.vy = 0;
+                }
             }
         }
     }
@@ -304,20 +344,21 @@ void Update()
             float dy = B.y - A.y;
             float dist = sqrt(dx * dx + dy * dy);
 
-            if (dist < A.radius + B.radius)
+            if (dist < A.radius + B.radius + 0.5) /// 두 공이 붙어 있고
             {
-                // 같은 번호의 공만 합쳐짐
-                if (A.type == B.type)
+                if (A.type == B.type)   /// 같은 번호의 공이면 합체
                 {
-                    int newType = A.type + 1;
-                    if (newType > 11) newType = 11;
+                    int newType = A.type + 1;   /// 새 공: 한 단계 더 큰 공
+                    if (newType > 11) newType = 11; /// 최대 11단계
+
+                    score += GetScoreFor(newType); /// 점수 증가
 
                     // 새로운 공 생성
                     Ball newBall;
                     newBall.type = newType;
                     newBall.radius = mergeRadius[newType];
                     newBall.color = mergeColor[newType];
-                    newBall.x = (A.x + B.x) / 2;
+                    newBall.x = (A.x + B.x) / 2;    /// 위치: A와 B 중간
                     newBall.y = (A.y + B.y) / 2;
                     newBall.vx = 0;
                     newBall.vy = 0;
@@ -330,7 +371,7 @@ void Update()
                     // 새 공 삽입
                     balls.push_back(newBall);
 
-                    // 반드시 i-- 필요
+                    // 반드시 i-- 필요: 다음 루프에서 건너뛰지 않게
                     i--;
 
                     break;
@@ -341,7 +382,7 @@ void Update()
 
 
     // 3) 현재 조종 가능한 공 처리
-    if (!currentBall.isDropping)
+    if (!currentBall.isDropping)    /// 박스 밖으로 못 나가게 체크
     {
         currentBall.x += currentBall.vx;
 
@@ -351,7 +392,7 @@ void Update()
         if (currentBall.x + currentBall.radius > boxRight)
             currentBall.x = boxRight - currentBall.radius;
     }
-    else
+    else    /// 없어도? 되긴 해
     {
         currentBall.vy += gravity;
         currentBall.y += currentBall.vy;
@@ -364,6 +405,37 @@ void Update()
             if (fabs(currentBall.vy) < 0.5f) currentBall.vy = 0;
         }
     }
+
+    /// === 기준선 표시 조건 ===
+
+    // 쌓인 공의 가장 위 y 구하기
+    float highestY = boxBottom;
+
+    for (auto& b : balls)
+    {
+        // ⭐ 떨어지는 중이거나, 아직 흔들리는 공은 제외!
+        if (fabs(b.vy) > 0.1f)
+            continue;
+
+        if (b.y - b.radius < highestY)
+            highestY = b.y - b.radius;
+    }
+
+    // 기준선 보이기 시작 조건 (단 한 번만)
+    if (!showLine)
+    {
+        float thresholdY = boxTop + (boxBottom - boxTop) * 0.3f;  /// 전체 높이의 30% 지점
+
+        if (highestY < thresholdY)
+            showLine = true;      /// 이제부터 기준선 보임
+    }
+
+    // === 게임 오버 조건 ===
+    // ⭐ showLine이 true이고, 안정된 공이 기준선 넘어갔을 때만
+    if (showLine && !isGameOver && (highestY < lineY))
+    {
+        isGameOver = true;
+    }
 }
 
 
@@ -374,7 +446,7 @@ void Render(HDC hdc, HWND hWnd)
 {
     GetClientRect(hWnd, &rt);
 
-    if (hMemDC == NULL)
+    if (hMemDC == NULL)     /// 더블 버퍼링 > 깜빡임 줄이기
     {
         hMemDC = CreateCompatibleDC(hdc);
         hBitmap = CreateCompatibleBitmap(hdc, rt.right, rt.bottom);
@@ -424,34 +496,128 @@ void Render(HDC hdc, HWND hWnd)
     SelectObject(hMemDC, old);
     DeleteObject(br);
 
-    // (추가됨) 더블버퍼 → 실제 화면 복사
+    if (showLine && !isGameOver)
+    {
+        HPEN pen = CreatePen(PS_DOT, 2, RGB(255, 0, 0));
+        HPEN oldPen = (HPEN)SelectObject(hMemDC, pen);
+
+        MoveToEx(hMemDC, boxLeft, lineY, NULL);
+        LineTo(hMemDC, boxRight, lineY);
+
+        SelectObject(hMemDC, oldPen);
+        DeleteObject(pen);
+    }
+
+    // 점수 출력 (우상단)
+    SetBkMode(hMemDC, TRANSPARENT);     // 글자 배경 투명
+    SetTextColor(hMemDC, RGB(0, 0, 0));   // 글자 검정
+    HFONT hFont = CreateFont(
+        28, 0, 0, 0, FW_BOLD,
+        FALSE, FALSE, FALSE,
+        HANGUL_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        ANTIALIASED_QUALITY,
+        DEFAULT_PITCH | FF_SWISS,
+        L"맑은 고딕"
+    );
+    HFONT oldF = (HFONT)SelectObject(hMemDC, hFont);
+
+    // 점수를 문자열로 변환
+    wchar_t scoreText[32];
+    wsprintf(scoreText, L"%d", score);
+
+    // 사각형 내부 우상단 영역
+    RECT scoreRect = { boxRight - 70, boxTop + 10, boxRight - 10, boxTop + 40 };
+
+    // 중앙 정렬
+    DrawText(hMemDC, scoreText, -1, &scoreRect,
+        DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+
+    SelectObject(hMemDC, oldF);
+    DeleteObject(hFont);
+
+    if (isGameOver)
+    {
+        RECT popup;
+        popup.left = boxLeft + 20;
+        popup.right = boxRight - 20;
+        popup.top = boxTop + 200;
+        popup.bottom = boxTop + 350;
+
+        // 버튼 영역
+        RECT restartBtn;
+        restartBtn.left = popup.left + 40;    // ★ 수정
+        restartBtn.right = popup.right - 40;  // ★ 수정
+        restartBtn.top = popup.bottom - 60;   // ★ 수정
+        restartBtn.bottom = popup.bottom - 20;// ★ 수정
+
+        // 버튼 박스 그리기
+        FrameRect(hMemDC, &restartBtn, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+        // 텍스트
+        DrawText(hMemDC, L"[ restart ]", -1, &restartBtn,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+        HBRUSH br = CreateSolidBrush(RGB(255, 255, 255));
+        FillRect(hMemDC, &popup, br);
+        DeleteObject(br);
+
+        // 테두리
+        FrameRect(hMemDC, &popup, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+        // 텍스트
+        SetBkMode(hMemDC, TRANSPARENT);
+        SetTextColor(hMemDC, RGB(0, 0, 0));
+
+        RECT text;
+        text = popup;
+
+        text.top += 20;
+
+        DrawText(hMemDC, L"GAME OVER", -1, &text,
+            DT_CENTER | DT_TOP | DT_SINGLELINE);
+
+        WCHAR scoreMsg[64];
+        swprintf(scoreMsg, 64, L"score: %d", score);
+
+        text.top += 50;
+
+        DrawText(hMemDC, scoreMsg, -1, &text,
+            DT_CENTER | DT_TOP | DT_SINGLELINE);
+
+        text.top += 45;
+
+        DrawText(hMemDC, L"[ restart ]", -1, &text,
+            DT_CENTER | DT_TOP | DT_SINGLELINE);
+    }
+
+    // 더블버퍼 → 실제 화면 복사
     BitBlt(hdc, 0, 0, rt.right, rt.bottom, hMemDC, 0, 0, SRCCOPY);
 }
 
 
 
-// ==============================
-//  WndProc
-// ==============================
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
     case WM_CREATE:
         SetTimer(hWnd, 1, 16, NULL); // 60fps 타이머
+        lineY = boxTop + 60;
         break;
 
     case WM_TIMER:
-        Update();
-        InvalidateRect(hWnd, NULL, FALSE);
+        Update();   /// 타이머 울릴 때마다 update(물리연산) 계산
+        InvalidateRect(hWnd, NULL, FALSE);  /// 화면 갱신 요청
         break;
 
     case WM_KEYDOWN:
+        if (isGameOver) break;
         switch (wParam)
         {
         case VK_LEFT:
-            if (!currentBall.isDropping)
-                currentBall.vx = -5;
+            if (!currentBall.isDropping)    /// isDropping = false
+                currentBall.vx = -5;    /// 왼쪽으로 이동
             break;
 
         case VK_RIGHT:
@@ -474,7 +640,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-    case WM_KEYUP:  // ← 기존 위치가 잘못되어 있었음 → 올바르게 분리됨
+    case WM_KEYUP:  /// 키에서 손을 떼면 좌우 이동 멈춤
+        if (isGameOver) break;
         switch (wParam)
         {
         case VK_LEFT:
@@ -484,6 +651,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
         break;
+
+    case WM_LBUTTONDOWN:
+    {
+        if (isGameOver)
+        {
+            int x = LOWORD(lParam);
+            int y = HIWORD(lParam);
+
+            RECT restartBtn;
+            restartBtn.left = boxLeft + 40;      // ★ Render와 동일 좌표
+            restartBtn.right = boxRight - 40;
+            restartBtn.top = boxTop + 290;
+            restartBtn.bottom = boxTop + 330;
+
+            // ★ restart 버튼 영역 클릭만 재시작
+            if (x > restartBtn.left && x < restartBtn.right &&
+                y > restartBtn.top && y < restartBtn.bottom)
+            {
+                balls.clear();
+                score = 0;
+                isGameOver = false;
+                showLine = false;
+                SpawnNewBall();
+            }
+        }
+    }
+    break;
 
     case WM_COMMAND:
     {
