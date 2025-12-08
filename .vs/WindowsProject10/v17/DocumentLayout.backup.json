@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\myvc-\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{EC659995-84D9-4735-9AEC-9946A0C0172F}|WindowsProject10\\WindowsProject10.vcxproj|D:\\myvc-\\WindowsProject10\\WindowsProject10.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EC659995-84D9-4735-9AEC-9946A0C0172F}|WindowsProject10\\WindowsProject10.vcxproj|solutionrelative:WindowsProject10\\WindowsProject10.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WindowsProject10.cpp",
+              "DocumentMoniker": "D:\\myvc-\\WindowsProject10\\WindowsProject10.cpp",
+              "RelativeDocumentMoniker": "WindowsProject10\\WindowsProject10.cpp",
+              "ToolTip": "D:\\myvc-\\WindowsProject10\\WindowsProject10.cpp",
+              "RelativeToolTip": "WindowsProject10\\WindowsProject10.cpp",
+              "ViewState": "AgIAALYAAAAAAAAAAAAiwLYAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-12-05T12:44:20.516Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

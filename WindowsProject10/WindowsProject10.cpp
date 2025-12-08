@@ -2,25 +2,24 @@
 //
 #include "framework.h"
 #include "WindowsProject10.h"
-#include <cstdlib>
-#include <ctime>
-#include <vector>
-#include <cmath>
+#include <cstdlib>      
+#include <ctime>        /// rand(), srand(), time() 랜덤 함수
+#include <vector>       /// 여러 개의 공 동적 관리
+#include <cmath>        /// sqrt, fabs 등 수학 함수(제곱근, 절댓값) 사용 위해
 using namespace std;
 
 #define MAX_LOADSTRING 100
 
-// ====== SpawnNewBall 함수 원형 선언 ======
-void SpawnNewBall();
+void SpawnNewBall();    /// 미리 함수 프로토타입 선언
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
+// 이 코드 모듈에 포함된 함수의 선언을 전달합니다: 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
+BOOL                InitInstance(HINSTANCE, int); 
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -95,10 +94,15 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 //   용도: 인스턴스 핸들을 저장하고 주 창을 만듭니다.
 //
+//   주석:
+//
+//        이 함수를 통해 인스턴스 핸들을 전역 변수에 저장하고
+//        주 프로그램 창을 만든 다음 표시합니다.
+//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-    srand((unsigned)time(NULL));   // 랜덤 초기화
-    SpawnNewBall();                // ← 오류 해결됨 (원형 선언 추가됨)
+    srand((unsigned)time(NULL));   /// 랜덤 초기화 . 랜덤 시드를 현재 시간으로 설정 . 실행할 때마다 매번 다른 랜덤 값이 나오도록
+    SpawnNewBall();                /// 첫 공 생성 -> currentBall에 저장됨
 
     hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
@@ -126,25 +130,28 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
 
-// ===== 전역 게임 변수 =====
+/// ===== 전역 게임 변수 =====
 
-// 박스 영역 (네모칸)
+/// 박스 영역
 int boxLeft = 50;
 int boxTop = 50;
 int boxRight = 350;
 int boxBottom = 550;
 
-float gravity = 0.6f; // 중력
+float gravity = 1.5f; /// 중력
 
 struct Ball
 {
-    int type;   // 1~11번 공 종류
-    float x, y;
-    float vx, vy;
-    float radius;
-    bool isDropping;
-    COLORREF color;
+    int type;       /// 1~11번 공 종류
+    float x, y;     /// 공 중심
+    float vx, vy;   /// 공 속도
+    float radius;   /// 공 반지름
+    bool isDropping;    /// 드롭(space)햇는가? false > 위에서 좌우 조종 중  true > 떨어져서 물리 연산 대상
+    COLORREF color;     /// 공 색깔
 };
+
+
+/// 각 단계별 반지름
 
 int mergeRadius[12] = {
     0,
@@ -169,12 +176,12 @@ COLORREF mergeColor[12] = {
     RGB(0,120,0)        //11 어두운 초록색
 };
 
-vector<Ball> balls;   // 내려온(굳혀진) 모든 공들
-Ball currentBall;     // 현재 조종 중인 공
+vector<Ball> balls;   /// 내려온(굳혀진) 모든 공들 / 스페이스바로 떨어진 뒤 박스 안에 쌓이는 모든 공 저장하는 vector
+Ball currentBall;     /// 현재 조종 중인 공 / 스페이스바 누르면 ball에 저장하고 새 공 한 개 생성
 
-HDC hMemDC;
-HBITMAP hBitmap;
-RECT rt;
+HDC hMemDC;         /// 메모리 DC
+HBITMAP hBitmap;    /// 에 붙는 비트맵
+RECT rt;            /// 창 클라이언트 영역 크기
 
 
 // ==============================

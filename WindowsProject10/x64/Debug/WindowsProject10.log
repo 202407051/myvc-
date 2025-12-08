@@ -1,14 +1,14 @@
 ﻿  WindowsProject10.cpp
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(190,26): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(191,42): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(192,32): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(311,57): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(401,33): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(401,17): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(400,33): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(400,17): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(414,59): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(414,23): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(413,59): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\2025 VC++\WindowsProject10\WindowsProject10\WindowsProject10.cpp(413,23): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-  WindowsProject10.vcxproj -> D:\2025 VC++\WindowsProject10\x64\Debug\WindowsProject10.exe
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(194,26): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(195,42): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(196,32): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(315,57): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(405,33): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(405,17): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(404,33): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(404,17): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(418,59): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(418,23): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(417,59): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\myvc-\WindowsProject10\WindowsProject10.cpp(417,23): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  WindowsProject10.vcxproj -> D:\myvc-\x64\Debug\WindowsProject10.exe
