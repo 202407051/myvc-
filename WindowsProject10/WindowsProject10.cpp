@@ -18,6 +18,10 @@ int boxTop = 50;
 int boxRight = 350;
 int boxBottom = 550;
 
+int floorHeight = 30;
+int floorTop = boxBottom;
+int floorBottom = boxBottom + floorHeight;
+
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
@@ -113,7 +117,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
     // 원하는 클라이언트 영역 크기
-    RECT rc = { 0, 0, boxRight + 50, boxBottom + 50}; // +여유
+    RECT rc = { 0, 0, boxRight + 100, boxBottom + 50}; // +여유
     DWORD style = WS_OVERLAPPEDWINDOW;
 
     // 이 스타일에 맞도록 전체 창 크기 계산
@@ -163,7 +167,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 bool showLine = false;         // 기준선 보이기 여부
 bool isGameOver = false;       // 게임 오버 상태
 
-// 기준선 위치 (화면 고정 70%)
 int lineY;                     // WM_SIZE나 InitInstance에서 계산
 
 int score = 0; /// 점수 변수
@@ -212,32 +215,62 @@ COLORREF mergeColor[12] = {
 
 vector<Ball> balls;   /// 내려온(굳혀진) 모든 공들 / 스페이스바로 떨어진 뒤 박스 안에 쌓이는 모든 공 저장하는 vector
 Ball currentBall;     /// 현재 조종 중인 공 / 스페이스바 누르면 ball에 저장하고 새 공 한 개 생성
+Ball nextBall;
 
 HDC hMemDC;         /// 메모리 DC
 HBITMAP hBitmap;    /// 에 붙는 비트맵
 RECT rt;            /// 창 클라이언트 영역 크기
 
 
-
-void SpawnNewBall()     /// 새 공 생성
+// 랜덤 공 하나를 만들어 주는 공통 함수 (currentBall, nextBall 둘 다 여기 사용)
+void MakeRandomBall(Ball& b)
 {
     int sizes[3] = { 10, 15, 20 };      /// 10. 15, 20 중 랜덤
     int idx = rand() % 3; /// 0, 1, 2
     int r = sizes[idx]; /// r= 10, 15, 20 중 하나
-    
-    currentBall.type = idx + 1; /// 1, 2, 3번 공
-    currentBall.radius = r; /// 반지름
-    currentBall.x = (boxLeft + boxRight) / 2;   /// x위치: 박스 중앙
-    currentBall.y = boxTop + r + 10;            /// y위치: 위쪽에서 살짝 내려
-    currentBall.vx = 0;
-    currentBall.vy = 0;
-    currentBall.isDropping = false;             /// drop되지 않음
 
-    if (currentBall.type == 1) currentBall.color = RGB(150, 0, 200);    /// 색깔 지정
-    if (currentBall.type == 2) currentBall.color = RGB(255, 0, 0);
-    if (currentBall.type == 3) currentBall.color = RGB(255, 140, 0);
+    b.type = idx + 1; /// 1, 2, 3번 공
+    b.radius = r; /// 반지름
+    b.x = (boxLeft + boxRight) / 2;   /// x위치: 박스 중앙
+    b.y = boxTop + r + 10;            /// y위치: 위쪽에서 살짝 내려
+    b.vx = 0;
+    b.vy = 0;
+    b.isDropping = false;             /// drop되지 않음
+
+    if (b.type == 1) b.color = RGB(150, 0, 200);    /// 색깔 지정
+    if (b.type == 2) b.color = RGB(255, 0, 0);
+    if (b.type == 3) b.color = RGB(255, 140, 0);
 }
 
+
+void SpawnNewBall()     /// 새 공 생성
+{
+    static bool first = true;   /// 첫 호출인지 여부
+
+    if (first)
+    {
+        /// 처음 한 번은 currentBall, nextBall 둘 다 랜덤 생성
+        MakeRandomBall(currentBall);
+        MakeRandomBall(nextBall);
+        first = false;
+    }
+    else
+    {
+        /// 그 다음부터는 nextBall을 currentBall로 가져오고,
+        /// 새로운 nextBall을 하나 더 만든다.
+        currentBall = nextBall;
+
+        /// currentBall 위치는 항상 박스 위쪽 중앙에서 시작
+        currentBall.x = (boxLeft + boxRight) / 2;
+        currentBall.y = boxTop + currentBall.radius + 10;
+        currentBall.vx = 0;
+        currentBall.vy = 0;
+        currentBall.isDropping = false;
+
+        /// 새로 떨어질 다음 공 생성
+        MakeRandomBall(nextBall);
+    }
+}
 
 
 /// *** 물리 연산, 충돌, 합체, 현재 공 처리 *** ///
@@ -422,12 +455,13 @@ void Update()
     }
 
     // 기준선 보이기 시작 조건 (단 한 번만)
-    if (!showLine)
     {
         float thresholdY = boxTop + (boxBottom - boxTop) * 0.3f;  /// 전체 높이의 30% 지점
 
         if (highestY < thresholdY)
             showLine = true;      /// 이제부터 기준선 보임
+        else
+            showLine = false;
     }
 
     // === 게임 오버 조건 ===
@@ -469,6 +503,27 @@ void Render(HDC hdc, HWND hWnd)
     SelectObject(hMemDC, oldPen);
     DeleteObject(boxPen);
 
+    // 바닥(추가된 공간) 그리기
+    int floorHeight = 20;
+    RECT floorRect = { boxLeft, boxBottom, boxRight -1, boxBottom + floorHeight };
+
+    // 바닥 채우기 (흰색)
+    HBRUSH floorBrush = CreateSolidBrush(RGB(255, 255, 255));
+    FillRect(hMemDC, &floorRect, floorBrush);
+    DeleteObject(floorBrush);
+
+    HPEN thickPen = CreatePen(PS_SOLID, 3, RGB(0, 0, 0));  // 두께 6
+    HPEN oldPen2 = (HPEN)SelectObject(hMemDC, thickPen);
+
+    MoveToEx(hMemDC, floorRect.left, floorRect.top, NULL);
+    LineTo(hMemDC, floorRect.right, floorRect.top);
+    LineTo(hMemDC, floorRect.right, floorRect.bottom);
+    LineTo(hMemDC, floorRect.left, floorRect.bottom);
+    LineTo(hMemDC, floorRect.left, floorRect.top);
+
+    SelectObject(hMemDC, oldPen2);
+    DeleteObject(thickPen);
+
     // 1) 떨어진 공들 그리기
     for (auto& b : balls)
     {
@@ -495,6 +550,31 @@ void Render(HDC hdc, HWND hWnd)
 
     SelectObject(hMemDC, old);
     DeleteObject(br);
+
+    /// 2-1) 다음 공 미리보기 (사각 박스 오른쪽)
+    {
+        SetBkMode(hMemDC, TRANSPARENT);
+        SetTextColor(hMemDC, RGB(0, 0, 0));
+
+        RECT nextLabel = { boxRight + 20, boxTop + 5, boxRight + 60, boxTop + 20 };
+        DrawText(hMemDC, L"NEXT", -1, &nextLabel,
+			DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+        int px = boxRight + 40;      /// 미리보기 중심 x 위치 (박스 오른쪽 여유 공간)
+        int py = boxTop + 50;        /// 미리보기 중심 y 위치
+
+        HBRUSH prevBr = CreateSolidBrush(nextBall.color);
+        HBRUSH prevOld = (HBRUSH)SelectObject(hMemDC, prevBr);
+
+        Ellipse(hMemDC,
+            px - nextBall.radius, py - nextBall.radius,
+            px + nextBall.radius, py + nextBall.radius
+        );
+
+        SelectObject(hMemDC, prevOld);
+        DeleteObject(prevBr);
+    }
+
 
     if (showLine && !isGameOver)
     {
@@ -721,9 +801,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 
-// ==============================
-//  About Dialog
-// ==============================
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
